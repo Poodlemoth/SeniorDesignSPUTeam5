@@ -1,0 +1,44 @@
+#include <Stepper.h>
+ 
+const int stepsPerRevolution = 200;
+Stepper myStepper(stepsPerRevolution, 8, 9, 10, 11);
+const int buttonPin = 2;
+int buttonState = HIGH;            // Current state of the button (assume not pressed at start)
+int lastButtonState = HIGH;        // Previous state of the button (also assume not pressed at start)
+unsigned long lastDebounceTime = 0;
+unsigned long debounceDelay = 50;  // Adjust this value as needed
+bool motorOn = false;              // Flag to track if the motor is on
+ 
+void setup() {
+  myStepper.setSpeed(60);
+  Serial.begin(9600);
+  pinMode(buttonPin, INPUT_PULLUP);
+}
+ 
+void loop() {
+  int reading = digitalRead(buttonPin);
+ 
+  if (reading != lastButtonState) {
+    lastDebounceTime = millis();
+  }
+ 
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+    if (reading != buttonState) {
+      buttonState = reading;
+      if (buttonState == LOW) {
+        Serial.println("Button pressed.");
+        // Toggle the motor state
+        motorOn = !motorOn;
+        if (motorOn) {
+          Serial.println("Turning motor on.");
+          myStepper.step(stepsPerRevolution);
+        } else {
+          Serial.println("Turning motor off.");
+          myStepper.step(-stepsPerRevolution);
+        }
+      }
+    }
+  }
+ 
+  lastButtonState = reading;
+}
