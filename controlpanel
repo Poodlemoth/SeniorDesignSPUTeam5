@@ -1,0 +1,108 @@
+#include <Stepper.h>
+
+const int stepsPerRevolution = 200;
+
+// Motors
+Stepper stepper1(stepsPerRevolution, 8, 9, 10, 11);
+
+// Buttons
+const int motorControlButtonPin = 2;
+const int emergencyStopButtonPin = 3;
+
+int motorControlButtonState = HIGH;
+int lastMotorControlButtonState = HIGH;
+unsigned long lastMotorControlDebounceTime = 0;
+unsigned long motorControlDebounceDelay = 50;
+bool motorsOn = false;
+
+int emergencyStopButtonState = HIGH;
+int lastEmergencyStopButtonState = HIGH;
+unsigned long lastEmergencyStopDebounceTime = 0;
+unsigned long emergencyStopDebounceDelay = 50;
+
+void setup() {
+  // Set up motor speeds
+  stepper1.setSpeed(60);
+  stepper2.setSpeed(60);
+
+  // Initialize serial communication
+  Serial.begin(9600);
+
+  // Set up button pin modes
+  pinMode(motorControlButtonPin, INPUT_PULLUP);
+  pinMode(emergencyStopButtonPin, INPUT_PULLUP);
+}
+
+void loop() {
+  // Motor control button
+  int motorControlReading = digitalRead(motorControlButtonPin);
+
+  // Check for button debounce
+  if (motorControlReading != lastMotorControlButtonState) {
+    lastMotorControlDebounceTime = millis();
+  }
+
+  // Check if debounce time has passed
+  if ((millis() - lastMotorControlDebounceTime) > motorControlDebounceDelay) {
+    if (motorControlReading != motorControlButtonState) {
+      motorControlButtonState = motorControlReading;
+
+      // Check if the button is pressed
+      if (motorControlButtonState == LOW) {
+        Serial.println("Motor control button pressed.");
+
+        // Toggle the motors on/off
+        motorsOn = !motorsOn;
+
+        // Perform corresponding action based on motor state
+        if (motorsOn) {
+          Serial.println("Turning motors on.");
+          stepper1.step(stepsPerRevolution);
+          stepper2.step(stepsPerRevolution);
+        } else {
+          Serial.println("Turning motors off.");
+          // Stop the motors (no steps)
+        }
+      }
+    }
+  }
+
+  // Update last button state for the next iteration
+  lastMotorControlButtonState = motorControlReading;
+
+  // Emergency stop button
+  int emergencyStopReading = digitalRead(emergencyStopButtonPin);
+
+  // Check for button debounce
+  if (emergencyStopReading != lastEmergencyStopButtonState) {
+    lastEmergencyStopDebounceTime = millis();
+  }
+
+  // Check if debounce time has passed
+  if ((millis() - lastEmergencyStopDebounceTime) > emergencyStopDebounceDelay) {
+    if (emergencyStopReading != emergencyStopButtonState) {
+      emergencyStopButtonState = emergencyStopReading;
+
+      // Check if the button is pressed
+      if (emergencyStopButtonState == LOW) {
+        Serial.println("Emergency stop button pressed.");
+
+        // Stop the motors immediately
+        stepper1.step(0);
+        stepper2.step(0);
+
+        // Update the motor state
+        motorsOn = false;
+      }
+    }
+  }
+
+  // Update last button state for the next iteration
+  lastEmergencyStopButtonState = emergencyStopReading;
+
+  // Continue running the motors if they are on
+  if (motorsOn) {
+    stepper1.step(stepsPerRevolution);
+    stepper2.step(stepsPerRevolution);
+  }
+}
