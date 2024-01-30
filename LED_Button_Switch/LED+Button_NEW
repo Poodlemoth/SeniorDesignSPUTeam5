@@ -1,0 +1,17 @@
+void setup() {
+  pinMode(8, OUTPUT); //decalre LED state
+  pinMode(2,INPUT); //declare button state
+}
+void loop() {
+
+  if (digitalRead(2) == HIGH && digitalRead(8) == LOW) {
+    digitalWrite(8, HIGH); //turns on the LED
+    Serial.println('Your LED was turned on');
+  }
+
+  else if (digitalRead(2) == HIGH & digitalRead(8) == HIGH) {
+    digitalWrite(8, LOW); //turns off the LED
+    Serial.println('Your LED was turned off');
+  }
+             
+}
