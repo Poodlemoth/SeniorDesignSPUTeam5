@@ -8,68 +8,73 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 DHT dht(DHTPIN, DHTTYPE);
 
-const int BUTTON_PIN = 7;  // Connect the Button to pin 7 or change here
-const int LED_PIN    = 3;  // Connect the LED to pin 3 or change here
-
-// variables will change:
-int ledState = LOW;        // tracks the current state of LED
-int lastButtonState;       // the previous state of the button
-int currentButtonState;    // the current state of the button
+const int ledButtonPin = 2;
+const int emergencyStopButtonPin = 3;
+const int ledPin = 8;
 
 void setup() {
-  Serial.begin(9600);         // initialize serial
-  pinMode(BUTTON_PIN, INPUT); // set Arduino pin to input mode
-  pinMode(LED_PIN, OUTPUT);    // set Arduino pin to output mode
-
   dht.begin();
   lcd.init();
   lcd.backlight();
-
-  lcd.setCursor(3, 0);
-  lcd.print("R.E.L.I.E.F");
-  lcd.setCursor(2, 1);
+  
+  pinMode(ledPin, OUTPUT); // Declare LED pin as output
+  pinMode(ledButtonPin, INPUT); // Declare LED button pin as input
+  pinMode(emergencyStopButtonPin, INPUT_PULLUP); // Declare emergency stop button pin as input with internal pull-up resistor
+  
+  lcd.setCursor(0, 0);
+  lcd.print("Hello to RELIEF!");
+  lcd.setCursor(1, 1);
   lcd.print("User Interface");
-  delay(3000);
+  delay(5000);
 
   lcd.clear();
 }
 
 void loop() {
-  // Read temperature and humidity
-  float h = dht.readHumidity();
-  float f = dht.readTemperature(true);
+  if (checkEmergencyStop()) return;
+  
+  displayTemperatureHumidity();
+  
+  controlLED();
+  
+  delay(100);
+}
 
-  // Display humidity on LCD
-  lcd.setCursor(3, 0);
+void displayTemperatureHumidity() {
+  float h = dht.readHumidity();
+  float f = dht.readTemperature(true);  // Read temperature as Fahrenheit (isFahrenheit = true)
+  
+  //--------------------humidity------------------------
+  lcd.setCursor(0, 0);
   lcd.print("Hum: ");
   lcd.print(h);
   lcd.print(" %");
 
-  // Display temperature on LCD
-  lcd.setCursor(2, 1);
+  //-----------------temperature as Fahrenheit----------
+  lcd.setCursor(0, 1);
   lcd.print("Temp: ");
   lcd.print(f);
   lcd.print(" F");
+}
 
-  // Button functionality
-  lastButtonState = currentButtonState;           // save the last state
-  currentButtonState = digitalRead(BUTTON_PIN);  // read new state
-
-  if (lastButtonState == HIGH && currentButtonState == LOW) {
-    Serial.print("The button is pressed: ");
-
-    // Toggle state of LED
-    if (ledState == LOW) {
-      ledState = HIGH;
-      Serial.println("Turning LED on");
-    } else {
-      ledState = LOW;
-      Serial.println("Turning LED off");
-    }
-
-    // Control LED according to the toggled state
-    digitalWrite(LED_PIN, ledState);  // turns the LED on or off based on the variable
+void controlLED() {
+  if (digitalRead(ledButtonPin) == HIGH && digitalRead(ledPin) == LOW) {
+    digitalWrite(ledPin, HIGH); // Turn on the LED
+    Serial.println("Your LED was turned on");
+  } else if (digitalRead(ledButtonPin) == HIGH && digitalRead(ledPin) == HIGH) {
+    digitalWrite(ledPin, LOW); // Turn off the LED
+    Serial.println("Your LED was turned off");
   }
+}
 
-  delay(2000);
+bool checkEmergencyStop() {
+  if (digitalRead(emergencyStopButtonPin) == HIGH) {
+    digitalWrite(ledPin, LOW); // Turn off the LED
+    lcd.noBacklight(); // Turn off LCD
+    while (true) {
+      // Loop indefinitely, effectively stopping the program
+    }
+    return true;
+  }
+  return false;
 }
