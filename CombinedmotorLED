@@ -1,0 +1,149 @@
+#include <LiquidCrystal_I2C.h>
+#include "DHT.h"
+
+#define DHTPIN A0
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+#define DHTTYPE DHT11   // DHT 11
+
+DHT dht(DHTPIN, DHTTYPE);
+
+const int ledButtonPin = 9;
+const int ledPin = 11;
+const int motorStateButton = 24; //change this
+
+int reverseSwitch1 = 2;  // Push button for reverse motor 1
+int reverseSwitch2 = 3;  // Push button for reverse motor 2
+int driverPUL1 = 7;      // PUL- pin motor 1
+int driverDIR1 = 6;      // DIR- pin motor 1
+int driverPUL2 = 5;      // PUL- pin motor 2
+int driverDIR2 = 4;      // DIR- pin motor 2
+int spd1 = A1;           // Potentiometer for motor 1
+int spd2 = A2;           // Potentiometer for motor 2
+int driverEN = 12;       // EN + pin
+
+// Variables
+int pd1 = 500;           // Pulse Delay period for motor 1
+int pd2 = 500;           // Pulse Delay period for motor 2
+boolean setdir1 = LOW;   // Set Direction for motor 1
+boolean setdir2 = HIGH;  // Set Direction for motor 2
+boolean isEnabled = false; // Motor driver enable status
+boolean motorState = true; //sets if you want display info or motor control
+
+
+// Interrupt Handlers
+void revmotor1 (){
+  setdir1 = !setdir1;
+}
+
+void revmotor2 (){
+  setdir2 = !setdir2;
+}
+
+void toggleEnable() {
+  isEnabled = !isEnabled;
+  digitalWrite(driverEN, isEnabled ? HIGH : LOW); // Toggle the driverEN pin
+}
+
+void setup() {
+  
+  dht.begin();
+
+  pinMode(driverPUL1, OUTPUT);
+  pinMode(driverDIR1, OUTPUT);
+  pinMode(driverPUL2, OUTPUT);
+  pinMode(driverDIR2, OUTPUT);
+  pinMode(driverEN, OUTPUT);
+  digitalWrite(driverEN, LOW);
+  attachInterrupt(digitalPinToInterrupt(reverseSwitch1), revmotor1, FALLING);
+  attachInterrupt(digitalPinToInterrupt(reverseSwitch2), revmotor2, FALLING);
+  attachInterrupt(digitalPinToInterrupt(driverEN), toggleEnable, FALLING);
+  
+  lcd.init();
+  lcd.backlight();
+  
+  pinMode(ledPin, OUTPUT); // Declare LED pin as output
+  pinMode(ledButtonPin, INPUT); // Declare LED button pin as input
+  
+  lcd.setCursor(0, 0);
+  lcd.print("Hello to RELIEF!");
+  lcd.setCursor(1, 1);
+  lcd.print("User Interface");
+  delay(5000);
+
+  lcd.clear();
+
+}
+
+void loop() {
+
+  if (digitalRead(motorStateButton) == HIGH && motorState == true) { // When button is pushed and the motor state is on swap
+    digitalWrite(motorStateButton, LOW); // swap states
+    motorState = false;
+  
+  if (digitalRead(motorStateButton) == HIGH && motorState == false) { //When the button is pushed and the motor state is off swap
+    digitalWrite(motorStateButton, LOW); // swap states
+    motorState = true;
+  }
+
+
+  if (motorState == true) {
+  // Read potentiometer value for motor 1
+  int potValue1 = analogRead(spd1);
+  // Motor 1 control
+  pd1 = map(potValue1, 0, 1023, 2000, 50); //test
+  digitalWrite(driverDIR1, setdir1);
+  digitalWrite(driverPUL1, HIGH);
+  delayMicroseconds(pd1);
+  digitalWrite(driverPUL1, LOW);
+  delayMicroseconds(pd1);
+
+  // Read potentiometer value for motor 2
+  int potValue2 = analogRead(spd2);
+  // Motor 2 control
+  pd2 = map(potValue2, 0, 1023, 2000, 50); //test
+  digitalWrite(driverDIR2, setdir2);
+  digitalWrite(driverPUL2, HIGH);
+  delayMicroseconds(pd2);
+  digitalWrite(driverPUL2, LOW);
+  delayMicroseconds(pd2); 
+  }
+
+  else {
+    controlLED();
+    displayTemperatureHumidity();
+
+  }
+
+
+}
+
+void displayTemperatureHumidity() { // Temperature and Humuidty read out function
+  float h = dht.readHumidity();
+  float f = dht.readTemperature(true);  // Read temperature as Fahrenheit (isFahrenheit = true)
+  
+  //--------------------humidity------------------------
+  lcd.setCursor(0, 0);
+  lcd.print("Hum: ");
+  lcd.print(h);
+  lcd.print(" %");
+
+  //-----------------temperature as Fahrenheit----------
+  lcd.setCursor(0, 1);
+  lcd.print("Temp: ");
+  lcd.print(f);
+  lcd.print(" F");
+}
+
+// LED Button Control
+void controlLED() {
+  if (digitalRead(ledButtonPin) == HIGH && digitalRead(ledPin) == LOW) { // When button is pushed and the led is off the led will turn on
+    digitalWrite(ledPin, HIGH); // Turn on the LED
+    Serial.println("Your LED was turned on");
+  } else if (digitalRead(ledButtonPin) == HIGH && digitalRead(ledPin) == HIGH) { // When button is pushed and led is on the led will turn off
+    digitalWrite(ledPin, LOW); // Turn off the LED
+    Serial.println("Your LED was turned off");
+  }
+}
+
+}
