@@ -1,0 +1,64 @@
+int reverseSwitch1 = 2;  // Push button for reverse motor 1
+int reverseSwitch2 = 3;  // Push button for reverse motor 2
+int driverPUL1 = 7;      // PUL- pin motor 1
+int driverDIR1 = 6;      // DIR- pin motor 1
+int driverPUL2 = 5;      // PUL- pin motor 2
+int driverDIR2 = 4;      // DIR- pin motor 2
+int spd1 = A1;           // Potentiometer for motor 1
+int spd2 = A2;           // Potentiometer for motor 2
+int driverEN = 12;       // EN + pin
+
+// Variables
+int pd1 = 500;           // Pulse Delay period for motor 1
+int pd2 = 500;           // Pulse Delay period for motor 2
+boolean setdir1 = LOW;   // Set Direction for motor 1
+boolean setdir2 = HIGH;  // Set Direction for motor 2
+boolean isEnabled = false; // Motor driver enable status
+
+// Interrupt Handlers
+void revmotor1 (){
+  setdir1 = !setdir1;
+}
+
+void revmotor2 (){
+  setdir2 = !setdir2;
+}
+
+void toggleEnable() {
+  isEnabled = !isEnabled;
+  digitalWrite(driverEN, isEnabled ? HIGH : LOW); // Toggle the driverEN pin
+}
+
+void setup() {
+  pinMode(driverPUL1, OUTPUT);
+  pinMode(driverDIR1, OUTPUT);
+  pinMode(driverPUL2, OUTPUT);
+  pinMode(driverDIR2, OUTPUT);
+  pinMode(driverEN, OUTPUT);
+  digitalWrite(driverEN, LOW);
+  attachInterrupt(digitalPinToInterrupt(reverseSwitch1), revmotor1, FALLING);
+  attachInterrupt(digitalPinToInterrupt(reverseSwitch2), revmotor2, FALLING);
+  attachInterrupt(digitalPinToInterrupt(driverEN), toggleEnable, FALLING);
+}
+
+void loop() {
+  // Read potentiometer value for motor 1
+  int potValue1 = analogRead(spd1);
+  // Motor 1 control
+  pd1 = map(potValue1, 0, 1023, 2000, 50);
+  digitalWrite(driverDIR1, setdir1);
+  digitalWrite(driverPUL1, HIGH);
+  delayMicroseconds(pd1);
+  digitalWrite(driverPUL1, LOW);
+  delayMicroseconds(pd1);
+
+  // Read potentiometer value for motor 2
+  int potValue2 = analogRead(spd2);
+  // Motor 2 control
+  pd2 = map(potValue2, 0, 1023, 2000, 50);
+  digitalWrite(driverDIR2, setdir2);
+  digitalWrite(driverPUL2, HIGH);
+  delayMicroseconds(pd2);
+  digitalWrite(driverPUL2, LOW);
+  delayMicroseconds(pd2);
+}
