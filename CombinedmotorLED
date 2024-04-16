@@ -10,7 +10,7 @@ DHT dht(DHTPIN, DHTTYPE);
 
 const int ledButtonPin = 9;
 const int ledPin = 11;
-const int motorStateButton = 24; //change this
+const int motorStateButton = 10; //change this
 
 int reverseSwitch1 = 2;  // Push button for reverse motor 1
 int reverseSwitch2 = 3;  // Push button for reverse motor 2
